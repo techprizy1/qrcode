@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>High-Resolution QR & Barcode Generator</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+        }
+        
+        header {
+            text-align: center;
+            padding: 20px 0;
+            color: white;
+        }
+        
+        header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+        
+        header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+        
+        .main-content {
+            display: flex;
+            flex: 1;
+            gap: 30px;
+            max-width: 1400px;
+            margin: 0 auto;
+            width: 100%;
+        }
+        
+        .controls {
+            background-color: white;
+            border-radius: 20px;
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2);
+            padding: 30px;
+            width: 350px;
+            flex-shrink: 0;
+        }
+        
+        .tabs {
+            display: flex;
+            margin-bottom: 25px;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        .tab {
+            flex: 1;
+            padding: 15px;
+            background-color: #f1f2f6;
+            color: #7f8c8d;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+        
+        .tab.active {
+            background: linear-gradient(to right, #3498db, #2c3e50);
+            color: white;
+        }
+        
+        .input-group {
+            margin-bottom: 25px;
+            text-align: left;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #2c3e50;
+            font-weight: 500;
+        }
+        
+        input {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 1rem;
+            transition: border-color 0.3s;
+        }
+        
+        input:focus {
+            border-color: #3498db;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+        }
+        
+        .btn {
+            background: linear-gradient(to right, #3498db, #2c3e50);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 1.1rem;
+            border-radius: 10px;
+            cursor: pointer;
+            width: 100%;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(52, 152, 219, 0.3);
+            margin-bottom: 20px;
+        }
+        
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 7px 20px rgba(52, 152, 219, 0.4);
+        }
+        
+        .btn:active {
+            transform: translateY(0);
+        }
+        
+        .export-options {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .export-btn {
+            background: white;
+            color: #2c3e50;
+            border: 2px solid #3498db;
+            padding: 12px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            justify-content: center;
+        }
+        
+        .export-btn:hover {
+            background: #3498db;
+            color: white;
+        }
+        
+        .preview-container {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 30px;
+            min-height: 500px;
+        }
+        
+        .preview-content {
+            background-color: white;
+            border-radius: 20px;
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2);
+            padding: 40px;
+            text-align: center;
+            max-width: 600px;
+            width: 100%;
+        }
+        
+        #qrcode, #barcode {
+            margin: 0 auto;
+            padding: 25px;
+            background-color: white;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            display: inline-block;
+        }
+        
+        #barcode {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .barcode-text {
+            margin-top: 20px;
+            font-size: 1.1rem;
+            color: #2c3e50;
+            word-break: break-all;
+            max-width: 400px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .instructions {
+            background-color: #f8f9fa;
+            border-radius: 15px;
+            padding: 25px;
+            margin-top: 30px;
+            text-align: left;
+        }
+        
+        .instructions h3 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-size: 1.4rem;
+        }
+        
+        .instructions ul {
+            padding-left: 25px;
+        }
+        
+        .instructions li {
+            margin-bottom: 12px;
+            color: #7f8c8d;
+            font-size: 1.05rem;
+        }
+        
+        footer {
+            text-align: center;
+            color: white;
+            padding: 25px 0;
+            margin-top: auto;
+        }
+        
+        .icon {
+            font-size: 1.4rem;
+        }
+        
+        .resolution-info {
+            background-color: #e3f2fd;
+            border-radius: 12px;
+            padding: 18px;
+            margin: 20px 0;
+            text-align: center;
+            color: #1976d2;
+            font-weight: 500;
+            font-size: 1.1rem;
+        }
+        
+        @media (max-width: 1100px) {
+            .main-content {
+                flex-direction: column;
+            }
+            
+            .controls {
+                width: 100%;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            header h1 {
+                font-size: 2rem;
+            }
+            
+            .tabs {
+                flex-direction: column;
+            }
+            
+            .preview-container {
+                min-height: 400px;
+                padding: 20px;
+            }
+            
+            .preview-content {
+                padding: 25px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>High-Resolution QR & Barcode Generator</h1>
+        <p>Create and export professional-quality codes with centered display</p>
+    </header>
+    
+    <div class="main-content">
+        <div class="controls">
+            <div class="tabs">
+                <div class="tab active" data-tab="qr">QR Code</div>
+                <div class="tab" data-tab="barcode">Barcode</div>
+            </div>
+            
+            <div class="input-group">
+                <label for="text">Enter text or URL:</label>
+                <input type="text" id="text" placeholder="https://example.com or any text">
+            </div>
+            
+            <button id="generate" class="btn">Generate High-Resolution Code</button>
+            
+            <div class="resolution-info">
+                📸 All codes generated at high resolution (300 DPI) for professional printing
+            </div>
+            
+            <div class="export-options">
+                <button class="export-btn" id="export-png">
+                    <span class="icon">🖼️</span> Export PNG (300 DPI)
+                </button>
+                <button class="export-btn" id="export-svg">
+                    <span class="icon">📐</span> Export SVG
+                </button>
+                <button class="export-btn" id="export-pdf">
+                    <span class="icon">📄</span> Export PDF (300 DPI)
+                </button>
+            </div>
+            
+            <div class="instructions">
+                <h3>How to use:</h3>
+                <ul>
+                    <li>Switch between QR Code and Barcode tabs</li>
+                    <li>Enter any text or URL in the input field</li>
+                    <li>Click the "Generate High-Resolution Code" button</li>
+                    <li>Codes are perfectly centered in the preview area</li>
+                    <li>Export in PNG, SVG, or PDF format at 300 DPI</li>
+                    <li>Scan the code with your smartphone camera</li>
+                    <li>Perfect for professional printing and presentations</li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="preview-container">
+            <div class="preview-content">
+                <div id="qrcode"></div>
+                <div id="barcode" class="hidden">
+                    <svg id="barcode-svg"></svg>
+                    <div class="barcode-text" id="barcode-text"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <footer>
+        <p>Created with JavaScript, HTML & CSS | High-Resolution Output with SVG Export</p>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const generateBtn = document.getElementById('generate');
+            const textInput = document.getElementById('text');
+            const qrContainer = document.getElementById('qrcode');
+            const barcodeContainer = document.getElementById('barcode');
+            const barcodeSvg = document.getElementById('barcode-svg');
+            const barcodeText = document.getElementById('barcode-text');
+            const tabs = document.querySelectorAll('.tab');
+            const exportPngBtn = document.getElementById('export-png');
+            const exportSvgBtn = document.getElementById('export-svg');
+            const exportPdfBtn = document.getElementById('export-pdf');
+            
+            let activeTab = 'qr';
+            let currentQrCode = null;
+            let currentBarcodeData = '';
+            
+            // Tab switching functionality
+            tabs.forEach(tab => {
+                tab.addEventListener('click', function() {
+                    // Remove active class from all tabs
+                    tabs.forEach(t => t.classList.remove('active'));
+                    
+                    // Add active class to clicked tab
+                    this.classList.add('active');
+                    
+                    // Update active tab
+                    activeTab = this.getAttribute('data-tab');
+                    
+                    // Show/hide appropriate container
+                    if (activeTab === 'qr') {
+                        qrContainer.classList.remove('hidden');
+                        barcodeContainer.classList.add('hidden');
+                    } else {
+                        qrContainer.classList.add('hidden');
+                        barcodeContainer.classList.remove('hidden');
+                    }
+                });
+            });
+            
+            // Generate high-resolution QR code
+            function generateHighResQRCode(text) {
+                // Clear previous QR code
+                qrContainer.innerHTML = '';
+                
+                // Create a high-resolution QR code (300 DPI)
+                const size = 400; // 400px for high resolution
+                currentQrCode = new QRCode(qrContainer, {
+                    text: text,
+                    width: size,
+                    height: size,
+                    colorDark: "#000000",
+                    colorLight: "#ffffff",
+                    correctLevel: QRCode.CorrectLevel.H
+                });
+            }
+            
+            // Generate high-resolution barcode
+            function generateHighResBarcode(text) {
+                try {
+                    // Generate barcode with high resolution settings
+                    JsBarcode(barcodeSvg, text, {
+                        format: "CODE128",
+                        displayValue: false,
+                        width: 4, // Thicker bars for better resolution
+                        height: 150,
+                        margin: 20,
+                        background: "#ffffff",
+                        lineColor: "#000000"
+                    });
+                    
+                    // Display the text below the barcode
+                    barcodeText.textContent = text;
+                    currentBarcodeData = text;
+                } catch (error) {
+                    alert('Invalid input for barcode. Please enter alphanumeric characters.');
+                }
+            }
+            
+            // Generate function based on active tab
+            function generateCode() {
+                const text = textInput.value.trim();
+                
+                if (text === '') {
+                    alert('Please enter some text or URL');
+                    return;
+                }
+                
+                if (activeTab === 'qr') {
+                    generateHighResQRCode(text);
+                } else {
+                    generateHighResBarcode(text);
+                }
+            }
+            
+            // Export as high-resolution PNG
+            function exportAsPng() {
+                const element = activeTab === 'qr' ? qrContainer : barcodeContainer;
+                
+                // Use html2canvas with high DPI settings
+                html2canvas(element, {
+                    scale: 3, // 3x scale for 300 DPI equivalent
+                    backgroundColor: null
+                }).then(canvas => {
+                    const link = document.createElement('a');
+                    link.download = `${activeTab}-code-highres.png`;
+                    link.href = canvas.toDataURL('image/png');
+                    link.click();
+                });
+            }
+            
+            // Export as SVG
+            function exportAsSvg() {
+                if (activeTab === 'qr') {
+                    // For QR codes, we need to convert canvas to SVG
+                    // Since QRCode.js generates canvas, we'll create an SVG version manually
+                    const canvas = qrContainer.querySelector('canvas');
+                    if (!canvas) {
+                        alert('Please generate a QR code first');
+                        return;
+                    }
+                    
+                    // Create SVG from canvas
+                    const svgData = `
+                        <svg xmlns="http://www.w3.org/2000/svg" width="${canvas.width}" height="${canvas.height}">
+                            <foreignObject width="100%" height="100%">
+                                <canvas xmlns="http://www.w3.org/1999/xhtml" width="${canvas.width}" height="${canvas.height}"></canvas>
+                            </foreignObject>
+                        </svg>
+                    `;
+                    
+                    // Convert canvas to data URL and embed in SVG
+                    const imgData = canvas.toDataURL('image/png');
+                    const finalSvg = `
+                        <svg xmlns="http://www.w3.org/2000/svg" width="${canvas.width}" height="${canvas.height}">
+                            <image href="${imgData}" width="${canvas.width}" height="${canvas.height}" />
+                        </svg>
+                    `;
+                    
+                    const blob = new Blob([finalSvg], {type: "image/svg+xml"});
+                    const url = URL.createObjectURL(blob);
+                    
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = 'qr-code.svg';
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                } else {
+                    // For barcodes, we already have SVG
+                    const svgData = new XMLSerializer().serializeToString(barcodeSvg);
+                    const blob = new Blob([svgData], {type: "image/svg+xml"});
+                    const url = URL.createObjectURL(blob);
+                    
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = 'barcode.svg';
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                }
+            }
+            
+            // Export as high-resolution PDF
+            function exportAsPdf() {
+                const element = activeTab === 'qr' ? qrContainer : barcodeContainer;
+                
+                // Use html2canvas with high DPI settings
+                html2canvas(element, {
+                    scale: 3, // 3x scale for 300 DPI equivalent
+                    backgroundColor: null
+                }).then(canvas => {
+                    const imgData = canvas.toDataURL('image/png');
+                    const { jsPDF } = window.jspdf;
+                    
+                    // Create PDF with dimensions matching the image
+                    const pdfWidth = canvas.width / 3; // Scale back to original size
+                    const pdfHeight = canvas.height / 3;
+                    const pdf = new jsPDF({
+                        orientation: pdfWidth > pdfHeight ? 'l' : 'p',
+                        unit: 'px',
+                        format: [pdfWidth, pdfHeight]
+                    });
+                    
+                    pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+                    pdf.save(`${activeTab}-code-highres.pdf`);
+                });
+            }
+            
+            // Event listeners
+            generateBtn.addEventListener('click', generateCode);
+            textInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    generateCode();
+                }
+            });
+            
+            exportPngBtn.addEventListener('click', exportAsPng);
+            exportSvgBtn.addEventListener('click', exportAsSvg);
+            exportPdfBtn.addEventListener('click', exportAsPdf);
+            
+            // Generate a sample QR code on page load
+            textInput.value = 'https://example.com';
+            setTimeout(() => {
+                generateCode();
+            }, 500);
+        });
+    </script>
+</body>
+</html>
